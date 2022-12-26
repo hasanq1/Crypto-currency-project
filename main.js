@@ -1,17 +1,25 @@
 const SHA256 = require('crypto-js/sha256');
 
+class Transaction{
+    constructor(fromAddress, toAddress, amount){
+        this.fromAddress = fromAddress;
+        this.toAddress = toAddress;
+        this.amount = amount;
+    }
+}
+
+
 class Block{
-    constructor(index, timestamp, data, previousHash =''){
-        this.index = index;
+    constructor(timestamp, transactions, previousHash =''){
         this.timestamp = timestamp;
-        this.data = data;
+        this.transactions = transactions;
         this.previousHash = previousHash;
         this.hash = this.calculateHash();
         this.nonce = 0;
     }
 
     calculateHash(){
-        return SHA256(this.index + this.previousHash + this.timestamp + JSON.stringify(this.data)+ this.nonce).toString();        
+        return SHA256(this.previousHash + this.timestamp + JSON.stringify(this.transaction)+ this.nonce).toString();        
     }
     mineBlock(difficulty){
         while(this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")){
@@ -29,20 +37,52 @@ class Block{
 class Blockchain{
     constructor(){
         this.chain = [this.createGenesisBlock()];
-        this.difficulty = 4;
+        this.difficulty = 2;
+        this.pendingTransactions = [];
+        this.miningReward = 100;
     }
     createGenesisBlock(){ 
-    return new Block(0, "12/1/2022", "Genesis block", "0");
+    return new Block("12/1/2022", "Genesis block", "0");
     }
 
     getLatestBlock(){  
         return this.chain[this.chain.length - 1];
     }
 
-    addBlock(newBlock){
-        newBlock.previousHash = this.getLatestBlock().hash;
-        newBlock.mineBlock(this.difficulty);
-        this.chain.push(newBlock);
+    minePendingTransactions(miningRewardAddress){
+        let block = new Block(Date.now(), this.pendingTransactions);
+        block.mineBlock(this.difficulty);
+
+        console.log('Block successfully mined!');
+        this.chain.push(block);
+
+        // reset pending transactions and sends the mining reward
+        // null is used to indicate that the transaction is a mining reward
+        this.pendingTransactions = [
+            new Transaction(null, miningRewardAddress, this.miningReward)
+        ];
+    }
+
+    createTransaction(transaction){
+        this.pendingTransactions.push(transaction);
+    }
+
+    getBalanceOfAddress(address){
+        let balance = 0;
+
+        for(const block of this.chain){
+            for(const trans of block.transactions){
+                // if the address is the sender, reduce the balance
+                if(trans.fromAddress === address){
+                    balance -= trans.amount;
+                }
+                // if the address is the receiver, increase the balance
+                if(trans.toAddress === address){
+                    balance += trans.amount;
+                }
+            }
+        }
+        return balance;
     }
 
     isChainValid(){
@@ -66,20 +106,17 @@ class Blockchain{
 
 let ProtoCoin = new Blockchain();
 
+// add a block address1 -> address2 would be a public key of somones wallet
+ProtoCoin.createTransaction(new Transaction('address1', 'address2', 100));
+ProtoCoin.createTransaction(new Transaction('address2', 'address1', 50));
 
-console.log('Mining block 1...');
-ProtoCoin.addBlock(new Block(1, "12/25/2022", { amount: 4 }));
+// mine the block and reward the miner but returns 0 for the first transaction 
+console.log('\n Starting the miner...');
+ProtoCoin.minePendingTransactions('testers-address');
+console.log('\nBalance of tester is', ProtoCoin.getBalanceOfAddress('testers-address'));
 
-console.log('Mining block 2...');
-ProtoCoin.addBlock(new Block(2, "12/26/2022", { amount: 10 }));
-
-
-
-// // test to tamper with data
-// // ProtoCoin.chain[1].data = { amount: 100 };
-// // ProtoCoin.chain[1].hash = ProtoCoin.chain[1].calculateHash();
-// console.log('Is blockchain valid? ' + ProtoCoin.isChainValid());
-
-// Output the blockchain
-console.log(JSON.stringify(ProtoCoin, null, 4));
-
+// mine the block and reward the miner but returns 
+// actual balence for the second transaction and stores a pending tranasction for the first transaction
+console.log('\n Starting the miner...');
+ProtoCoin.minePendingTransactions('testers-address');
+console.log('\nBalance of tester is', ProtoCoin.getBalanceOfAddress('testers-address'));
