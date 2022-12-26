@@ -60,5 +60,5 @@ ProtoCoin.addBlock(new Block(2, "12/26/2022", { amount: 10 }));
 
 console.log('Is blockchain valid? ' + ProtoCoin.isChainValid());
 
-//console.log(JSON.stringify(ProtoCoin, null, 4));
+console.log(JSON.stringify(ProtoCoin, null, 4));
 
