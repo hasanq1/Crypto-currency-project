@@ -10,6 +10,7 @@ class Transaction{
 
 
 class Block{
+
     constructor(timestamp, transactions, previousHash =''){
         this.timestamp = timestamp;
         this.transactions = transactions;
@@ -29,9 +30,6 @@ class Block{
         console.log("Block mined: " + this.hash);
     }
 }
-
-
-
 
 
 class Blockchain{
